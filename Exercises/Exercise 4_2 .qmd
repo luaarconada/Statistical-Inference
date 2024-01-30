@@ -1,0 +1,121 @@
+---
+title: "Exercise 4.2 - Method of Moments"
+format: pdf
+editor: visual
+---
+
+## Exercise 4.2
+
+The proportion of impurities in each manufactured unit of a certain kind of chemical product is a rv with pdf
+
+$$
+f(x)= 
+\begin{cases}
+    (\theta + 1)x^{\theta},& \text{if } 0 < x < 1 \\
+    0,              & \text{otherwise}
+\end{cases}
+$$
+
+where $\theta \geq -1$.
+
+Five units of the manufactured product are taken in one day, resulting in the next impurity proportions: 0.33, 0.51, 0.02, 0.15, 0.12.
+
+1.  Obtain the moment estimator of $\theta$.
+
+## Solution
+
+We start from the definition of the moment estimator, which we borrow from the main text.
+
+------------------------------------------------------------------------
+
+**Definition 4.1 (Method of moments)** Let $X∼F_θ$ with $θ=(θ_1,...,θ_K)′$. From a srs of X, the *method of moments* produces the estimator $\hat{θ}^{MM}$ that is the solution to the system of equations
+
+$α_r(θ_1,…,θ_K)=a_r, \, r=1,…,R$
+
+where $R \geq K$ is the lowest integer such that the system admits a unique solution and $θ_1,...,θ_K$ are the variables. The estimator $\hat{θ}^{MM}$ is simply referred to as the *moment estimator* of $\theta$.
+
+------------------------------------------------------------------------
+
+We recognise that $θ$ is just one parameter, so $R \geq 1$. To find the moment estimator, we start with one equation (R = 1) and check if that is enough. Therefore, we have the single equation:
+
+$$
+\alpha_1(\hat{θ}^{MM}) = a_1
+$$ {#eq-method-moments}
+
+with $\alpha_1$ and $a_1$ the population and sample mean, respectively. What we aim to do is to 'plug out' $\hat{θ}^{MM}$ from the expression above. We calculate the population moment first:
+
+$$
+\alpha_1 \equiv E(X) = \int_0^{1} xf(x)
+=  \int_0^{1} (\theta + 1)x^{\theta + 1} dx = \frac{\theta + 1}{\theta + 2} |x^{\theta + 2}|_0^1 = \frac{\theta + 1}{\theta + 2}
+$$ {#eq-first-moment}
+
+Combining equations @eq-method-moments and @eq-first-moment we can express $\theta$ in terms of $a_1$: $$
+\frac{\hat{θ}^{MM} + 1}{\hat{θ}^{MM} + 2} = a_1 \Longleftrightarrow  \hat{θ}^{MM} = \frac{2a_1 - 1}{1 - a_1}
+$$ {#eq-estimator}
+
+This shows that only one equation ($R = 1$) should be enough. We can now use `R` to compute the sample mean $a_1$ and plug it into equation @eq-estimator to find:
+
+```{r}
+impurity_props <- c(0.33, 0.51, 0.02, 0.15, 0.12)
+a_1 <- mean(impurity_props)
+print(paste("a_1 equals", a_1))
+theta_mm <- (2*a_1 - 1)/(1 - a_1)
+theta_mm
+```
+
+We find that that $a_1 = 0.226$ and $\hat{θ}^{MM} \approx -.71$.
+
+### Visual Check
+
+Let us try to reproduce our own version of Figure 4.2 in the main text. The strategy is as follows:
+
+1.  For different $\theta$s, plot the density functions with their means as striped vertical lines
+2.  Plot the observed sample mean, $a_1$ as a solid vertical line.
+3.  Check visually whether the mean of the distribution of the selected $\hat{θ}^{MM}$ (striped black line) matches the solid black vertical line representing the observed sample mean.
+
+```{r, fig.height=5}
+### PREP
+x_axis <- seq(0.1, 1, length.out = 1000)
+thetas <- c(-.8, 0, 1)
+
+# Function to compute density
+f <- function(x, theta) {
+  return(
+    (theta + 1) * x^theta
+    )
+}
+# Function to compute first pop moment (alpha_1) from theta (Eq. 3)
+alpha_1 <- function(theta) {
+  return(
+    (theta + 1) / (theta + 2)
+  )
+}
+
+### PLOTTING
+# First Step: plot the mm estimate
+plot(x = x_axis, y = f(x_axis, theta_mm), type = "l", xlab = "x", ylab = "Density")
+abline(v = alpha_1(theta_mm), lty = 2)
+
+# Second Step: Display a_1 as a vertical line
+abline(v = a_1)
+mtext(expression(a[1]), side = 1, at = a_1)
+
+# Third Step: Loop over other thetas, overlay their density and first moment
+i <- 1
+rainbow_colours <- rainbow(length(thetas))
+for (theta in thetas) {
+  lines(x = x_axis, y = f(x_axis, theta), col = rainbow_colours[i])
+  abline(v = alpha_1(theta), col = rainbow_colours[i], lty = 2)
+  i <- i + 1
+}
+
+# Final Step: add legend
+legend(
+  x = "topright",
+  legend = c(expression(hat(theta)[mm] == -.71), round(thetas, 2)),
+  col = c("#000000", rainbow_colours),
+  lwd = 2,
+)
+```
+
+Since the two black lines (striped for population and solid for sample) overlay, we should have chosen the right moment estimator $\hat{θ}^{MM} \approx 0.71$.
